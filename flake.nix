@@ -32,7 +32,7 @@
   }: let
     # Local system's architecture, the host you are running this flake on.
     localSystem = "x86_64-linux";
-    pkgsLocal = import nixpkgs {system = localSystem;};
+    # pkgsLocal = import nixpkgs {system = localSystem;};
     # The native system of the target SBC.
     aarch64System = "aarch64-linux";
     pkgsNative = import nixpkgs {system = aarch64System;};
@@ -60,29 +60,35 @@
           core = import ./modules/boards/rock5a.nix;
           sd-image = ./modules/sd-image/rock5a.nix;
         };
+        # Nano Pi M6
+        nanopi-m6 = {
+          core = import ./modules/boards/nanopi-m6.nix;
+          sd-image = ./modules/sd-image/nanopi-m6.nix;
+        };
       };
 
       nixosConfigurations =
         # sdImage - boot via U-Boot - fully native
-        (builtins.mapAttrs (name: board:
-          nixpkgs.lib.nixosSystem {
-            system = aarch64System; # native or qemu-emulated
-            specialArgs.rk3588 = {
-              inherit nixpkgs;
-              pkgsKernel = pkgsNative;
-            };
-            modules = [
-              ./modules/configuration.nix
-              board.core
-              board.sd-image
+        (builtins.mapAttrs
+          (name: board:
+            nixpkgs.lib.nixosSystem {
+              system = aarch64System; # native or qemu-emulated
+              specialArgs.rk3588 = {
+                inherit nixpkgs;
+                pkgsKernel = pkgsNative;
+              };
+              modules = [
+                ./modules/configuration.nix
+                board.core
+                board.sd-image
 
-              {
-                networking.hostName = name;
-                sdImage.imageBaseName = "${name}-sd-image";
-              }
-            ];
-          })
-        self.nixosModules)
+                {
+                  networking.hostName = name;
+                  sdImage.imageBaseName = "${name}-sd-image";
+                }
+              ];
+            })
+          self.nixosModules)
         # sdImage - boot via U-Boot - fully cross-compiled
         // (nixpkgs.lib.mapAttrs'
           (name: board:
@@ -140,15 +146,18 @@
         sdImage-opi5 = self.nixosConfigurations.orangepi5.config.system.build.sdImage;
         sdImage-opi5plus = self.nixosConfigurations.orangepi5plus.config.system.build.sdImage;
         sdImage-rock5a = self.nixosConfigurations.rock5a.config.system.build.sdImage;
+        sdImage-nanopi-m6 = self.nixosConfigurations.nanopi-m6.config.system.build.sdImage;
 
         sdImage-opi5-cross = self.nixosConfigurations.orangepi5-cross.config.system.build.sdImage;
         sdImage-opi5plus-cross = self.nixosConfigurations.orangepi5plus-cross.config.system.build.sdImage;
         sdImage-rock5a-cross = self.nixosConfigurations.rock5a-cross.config.system.build.sdImage;
+        sdImage-nanopi-m6-cross = self.nixosConfigurations.nanopi-m6-cross.config.system.build.sdImage;
 
         # UEFI raw image
         rawEfiImage-opi5 = self.nixosConfigurations.orangepi5-uefi.config.formats.raw-efi;
         rawEfiImage-opi5plus = self.nixosConfigurations.orangepi5plus-uefi.config.formats.raw-efi;
         rawEfiImage-rock5a = self.nixosConfigurations.rock5a-uefi.config.formats.raw-efi;
+        rawEfiImage-nanopi-m6 = self.nixosConfigurations.nanopi-m6-uefi.config.formats.raw-efi;
       };
 
       devShells.fhsEnv =
@@ -187,7 +196,7 @@
           # nix
           deadnix.enable = true;
           alejandra.enable = true;
-          statix.enable = true;
+          # statix.enable = true;
         };
       };
     });
